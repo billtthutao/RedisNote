@@ -1,0 +1,575 @@
+docker run --name some-redis -p 6379:6379 -d redis
+
+docker exec -it some-redis /bin/bash
+
+docker run -v C:\Users\TaoHu\redis\redis.conf:/usr/local/etc/redis/redis.conf --name myredis -p 6380:6379 -d redis redis-server /usr/local/etc/redis/redis.conf
+
+docker run -v redis-slave.conf:/usr/local/etc/redis/redis.conf --name myredis-slave -p 6381:6379 -d redis redis-server /usr/local/etc/redis/redis.conf
+
+docker build -t myredis:master .
+docker build -t myredis:slave .
+docker run --name myredis-master -p 6380:6379 -d myredis:master
+docker run --name myredis-slave -p 6381:6379 -d myredis:slave
+docker exec -it myredis-master /bin/bash
+docker exec -it myredis-slave /bin/bash
+
+1. 5种数据结构
+STRING    可以是字符串，整数或者浮点数
+
+GET Fetches the data stored at the given key
+SET Sets the value stored at the given key
+DEL Deletes the value stored at the given key (works for all types)
+
+$ redis-cli
+redis 127.0.0.1:6379> set hello world
+OK
+redis 127.0.0.1:6379> get hello
+"world"
+redis 127.0.0.1:6379> del hello
+(integer) 1
+redis 127.0.0.1:6379> get hello
+(nil)
+
+LIST      一个链表，链表上的每个节点都包含了一个字符串
+(键值对的值只能是字符串）
+
+RPUSH Pushes the value onto the right end of the list
+LRANGE Fetches a range of values from the list
+LINDEX Fetches an item at a given position in the list
+LPOP Pops the value from the left end of the list and returns it
+
+redis 127.0.0.1:6379> rpush list-key item
+(integer) 1
+redis 127.0.0.1:6379> rpush list-key item2
+(integer) 2
+redis 127.0.0.1:6379> rpush list-key item
+(integer) 3
+redis 127.0.0.1:6379> lrange list-key 0 -1
+1) "item"
+2) "item2"
+3) "item"
+redis 127.0.0.1:6379> lindex list-key 1
+"item2"
+redis 127.0.0.1:6379> lpop list-key
+"item"
+redis 127.0.0.1:6379> lrange list-key 0 -1
+1) "item2"
+2) "item"
+redis 127.0.0.1:6379>
+
+SET       包含字符串的无序收集器，并且被包含的每个字符串都是独一无二，各不相同的。
+(键值对的值只能是字符串）
+SADD Adds the item to the set
+SMEMBERS Returns the entire set of items
+SISMEMBER Checks if an item is in the set
+SREM Removes the item from the set, if it exists
+
+redis 127.0.0.1:6379> sadd set-key item
+(integer) 1
+redis 127.0.0.1:6379> sadd set-key item2
+(integer) 1
+redis 127.0.0.1:6379> sadd set-key item3
+(integer) 1
+redis 127.0.0.1:6379> sadd set-key item
+(integer) 0
+redis 127.0.0.1:6379> smembers set-key
+1) "item"
+2) "item2"
+3) "item3"
+redis 127.0.0.1:6379> sismember set-key item4
+(integer) 0
+redis 127.0.0.1:6379> sismember set-key item
+(integer) 1
+redis 127.0.0.1:6379> srem set-key item2
+(integer) 1
+redis 127.0.0.1:6379> srem set-key item2
+(integer) 0
+redis 127.0.0.1:6379> smembers set-key
+1) "item"
+2) "item3"
+redis 127.0.0.1:6379>
+
+HASH      包含键值对的无序散列表
+(键值对的值可以是字符串或数字值）
+
+HSET Stores the value at the key in the hash
+HGET Fetches the value at the given hash key
+HGETALL Fetches the entire hash
+HDEL Removes a key from the hash, if it exists
+
+redis 127.0.0.1:6379> hset hash-key sub-key1 value1
+(integer) 1
+redis 127.0.0.1:6379> hset hash-key sub-key2 value2
+(integer) 1
+redis 127.0.0.1:6379> hset hash-key sub-key1 value1
+(integer) 0
+redis 127.0.0.1:6379> hgetall hash-key
+1) "sub-key1"
+2) "value1"
+3) "sub-key2"
+4) "value2"
+redis 127.0.0.1:6379> hdel hash-key sub-key2
+(integer) 1
+redis 127.0.0.1:6379> hdel hash-key sub-key2
+(integer) 0
+redis 127.0.0.1:6379> hget hash-key sub-key1
+"value1"
+redis 127.0.0.1:6379> hgetall hash-key
+1) "sub-key1"
+2) "value1"
+
+ZSET      字符串成员(member)与浮点数分值(score)之间的有序映射，元素的排列顺序由分值的大小决定
+(键值对的值只能是浮点数）
+
+ZADD 		Adds member with the given score to the ZSET
+ZRANGE 		Fetches the items in the ZSET from their positions in sorted order
+ZRANGEBYSCORE 	Fetches items in the ZSET based on a range of scores
+ZREM 		Removes the item from the ZSET, if it exists
+
+redis 127.0.0.1:6379> zadd zset-key 728 member1
+(integer) 1
+redis 127.0.0.1:6379> zadd zset-key 982 member0
+(integer) 1
+redis 127.0.0.1:6379> zadd zset-key 982 member0
+(integer) 0
+redis 127.0.0.1:6379> zrange zset-key 0 -1 withscores
+1) "member1"
+2) "728"
+3) "member0"
+4) "982"
+redis 127.0.0.1:6379> zrangebyscore zset-key 0 800 withscores
+1) "member1"
+2) "728"
+redis 127.0.0.1:6379> zrem zset-key member1
+(integer) 1
+redis 127.0.0.1:6379> zrem zset-key member1
+(integer) 0
+redis 127.0.0.1:6379> zrange zset-key 0 -1 withscores
+1) "member0"
+2) "982"
+
+2. 字节串操作
+INCR 		INCR key-name
+		—Increments the value stored at the key by 1
+DECR 		DECR key-name
+		—Decrements the value stored at the key by 1
+INCRBY 		INCRBY key-name amount
+		—Increments the value stored at the key by the provided integer value
+DECRBY 		DECRBY key-name amount
+		—Decrements the value stored at the key by the provided integer value
+INCRBYFLOAT 	INCRBYFLOAT key-name amount
+		—Increments the value stored at the key by the provided float value (available in Redis 2.6 and later)
+
+APPEND 		APPEND key-name value
+		—Concatenates the provided value to the string already stored at the given key
+GETRANGE 	GETRANGE key-name start end
+		—Fetches the substring, including all characters from the start offset to the end offset, inclusive
+SETRANGE 	SETRANGE key-name offset value
+		—Sets the substring starting at the provided offset to the given value
+GETBIT 		GETBIT key-name offset
+		—Treats the byte string as a bit string, and returns the value of the bit in the string at the provided bit offset
+SETBIT 		SETBIT key-name offset value
+		—Treats the byte string as a bit string, and sets the value of the bit in the string at the provided bit offset
+BITCOUNT 	BITCOUNT key-name [start end]
+		—Counts the number of 1 bits in the string, optionally starting and finishing at the provided byte offsets
+BITOP 		BITOP operation dest-key key-name [key-name ...]
+		Performs one of the bitwise operations, AND, OR, XOR, or NOT, on the strings provided, storing the result in the destination key
+SETNX           SETNX key-name value
+                set the key-name using value only when key-name does not exist
+SETEX 		SETEX key seconds value
+  		Set the value and expiration of a key
+
+3. List操作
+RPUSH 		RPUSH key-name value [value ...]
+		-Pushes the value(s) onto the right end of the list
+LPUSH 		LPUSH key-name value [value ...]
+		—Pushes the value(s) onto the left end of the list
+RPOP 		RPOP key-name
+		—Removes and returns the rightmost item from the list
+LPOP 		LPOP key-name
+		—Removes and returns the leftmost item from the list
+LINDEX 		LINDEX key-name offset
+		—Returns the item at the given offset
+LRANGE 		LRANGE key-name start end
+		—Returns the items in the list at the offsets from start to end, inclusive
+LTRIM 		LTRIM key-name start end
+		—Trims the list to only include items at indices between start and end, inclusive
+
+BLPOP 		BLPOP key-name [key-name ...] timeout
+		—Pops the leftmost item from the first non-empty LIST, or waits the timeout in seconds for an item
+BRPOP 		BRPOP key-name [key-name ...] timeout
+		—Pops the rightmost item from the first non-empty LIST, or waits the timeout in seconds for an item
+RPOPLPUSH 	RPOPLPUSH source-key dest-key
+		—Pops the rightmost item from the source and LPUSHes the item to the destination, also returning the item to the user
+BRPOPLPUSH 	BRPOPLPUSH source-key dest-key timeout
+		—Pops the rightmost item from the source and LPUSHes the item to the destination, also returning the item to the user, and waiting up to the timeout if the source is empty
+
+4. Set 操作
+SADD 		SADD key-name item [item ...]
+		—Adds the items to the set and returns the number of items added that weren’t already present
+SREM 		SREM key-name item [item ...]
+		—Removes the items and returns the number of items that were removed
+SISMEMBER 	SISMEMBER key-name item
+		—Returns whether the item is in the SET
+SCARD 		SCARD key-name
+		—Returns the number of items in the SET
+SMEMBERS 	SMEMBERS key-name
+		—Returns all of the items in the SET as a Python set
+SRANDMEMBER 	SRANDMEMBER key-name [count]
+		—Returns one or more random items from the SET. When count is positive, Redis will return count distinct randomly chosen
+		items, and when count is negative, Redis will return count randomly chosen items that may not be distinct.
+SPOP 		SPOP key-name
+		—Removes and returns a random item from the SET
+SMOVE 		SMOVE source-key dest-key item
+		—If the item is in the source, removes the item from the source and adds it to the destination, returning if the item was moved
+
+SDIFF 		SDIFF key-name [key-name ...]
+		—Returns the items in the first SET that weren’t in any of the other SETs (mathematical set difference operation)
+SDIFFSTORE 	SDIFFSTORE dest-key key-name [key-name ...]
+		—Stores at the dest-key the items in the first SET that weren’t in any of the other SETs (mathematical set difference operation)
+SINTER 		SINTER key-name [key-name ...]
+		—Returns the items that are in all of the SETs (mathematical set intersection operation)
+SINTERSTORE 	SINTERSTORE dest-key key-name [key-name ...]
+		—Stores at the dest-key the items that are in all of the SETs (mathematical set intersection operation)
+SUNION 		SUNION key-name [key-name ...]
+		—Returns the items that are in at least one of the SETs (mathematical set union operation)
+SUNIONSTORE 	SUNIONSTORE dest-key key-name [key-name ...]
+		—Stores at the dest-key the items that are in at least one of the SETs (mathematical set union operation)
+
+5. 散列操作
+HMGET 		HMGET key-name key [key ...]
+		—Fetches the values at the fields in the HASH
+HMSET 		HMSET key-name key value [key value ...]
+		—Sets the values of the fields in the HASH
+HDEL 		HDEL key-name key [key ...]
+		—Deletes the key-value pairs in the HASH, returning the number of pairs that were found and deleted
+HLEN 		HLEN key-name
+		—Returns the number of key-value pairs in the HASH
+
+HEXISTS 	HEXISTS key-name key
+		—Returns whether the given key exists in the HASH
+HKEYS 		HKEYS key-name
+		—Fetches the keys in the HASH
+HVALS 		HVALS key-name
+		—Fetches the values in the HASH
+HGETALL 	HGETALL key-name
+		—Fetches all key-value pairs from the HASH
+HINCRBY 	HINCRBY key-name key increment
+		—Increments the value stored at the given key by the integer increment
+HINCRBYFLOAT 	HINCRBYFLOAT key-name key increment
+		—Increments the value stored at the given key by the float increment
+
+6. 有序集合
+
+ZADD 		ZADD key-name score member [score member ...]
+		—Adds members with the given scores to the ZSET
+ZREM 		ZREM key-name member [member ...]
+		—Removes the members from the ZSET, returning the number of members that were removed
+ZCARD 		ZCARD key-name
+		—Returns the number of members in the ZSET
+ZINCRBY 	ZINCRBY key-name increment member
+		—Increments the member in the ZSET
+ZCOUNT 		ZCOUNT key-name min max
+		—Returns the number of members with scores between the provided minimum and maximum
+ZRANK 		ZRANK key-name member
+		—Returns the position of the given member in the ZSET
+ZSCORE 		ZSCORE key-name member
+		—Returns the score of the member in the ZSET
+ZRANGE 		ZRANGE key-name start stop [WITHSCORES]
+		—Returns the members and optionally the scores for the members with ranks between start and stop
+
+ZREVRANK 		ZREVRANK key-name member
+			—Returns the position of the member in the ZSET, with members ordered in reverse
+ZREVRANGE 		ZREVRANGE key-name start stop [WITHSCORES]
+			—Fetches the given members from the ZSET by rank, with members in reverse order
+ZRANGEBYSCORE 		ZRANGEBYSCORE key min max [WITHSCORES] [LIMIT offset count]
+			—Fetches the members between min and max
+ZREVRANGEBYSCORE 	ZREVRANGEBYSCORE key max min [WITHSCORES] [LIMIT offset count]
+			—Fetches the members in reverse order between min and max
+ZREMRANGEBYRANK 	ZREMRANGEBYRANK key-name start stop
+			—Removes the items from the ZSET with ranks between start and stop
+ZREMRANGEBYSCORE 	ZREMRANGEBYSCORE key-name min max
+			—Removes the items from the ZSET with scores between min and max
+ZINTERSTORE 		ZINTERSTORE dest-key key-count key [key ...] [WEIGHTS weight [weight ...]] [AGGREGATE SUM|MIN|MAX]
+			—Performs a SET-like intersection of the provided ZSETs
+ZUNIONSTORE 		ZUNIONSTORE dest-key key-count key [key ...] [WEIGHTS weight [weight ...]] [AGGREGATE SUM|MIN|MAX]
+			—Performs a SET-like union of the provided ZSETs
+
+7. 发布与订阅 操作
+SUBSCRIBE 	SUBSCRIBE channel [channel ...]
+		—Subscribes to the given channels
+UNSUBSCRIBE 	UNSUBSCRIBE [channel [channel ...]]
+		—Unsubscribes from the provided channels, or unsubscribes all channels if no channel is given
+PUBLISH 	PUBLISH channel message
+		—Publishes a message to the given channel
+PSUBSCRIBE 	PSUBSCRIBE pattern [pattern ...]
+		—Subscribes to messages broadcast to channels that match the given pattern
+PUNSUBSCRIBE 	PUNSUBSCRIBE [pattern [pattern ...]]
+		—Unsubscribes from the provided patterns, or unsubscribes from all subscribed patterns if none are given
+
+8 排序操作 (可以操作不同的数据类型)
+SORT 		SORT source-key [BY pattern] [LIMIT offset count] [GET pattern [GET pattern ...]] [ASC|DESC] [ALPHA] [STORE dest-key]
+		—Sorts the input LIST, SET, or ZSET according to the options provided, and returns or stores the result
+
+>>> conn.rpush('sort-input', 23, 15, 110, 7)
+4
+>>> conn.sort('sort-input')
+['7', '15', '23', '110']
+>>> conn.sort('sort-input', alpha=True)
+['110', '15', '23', '7']
+>>> conn.hset('d-7', 'field', 5)
+1L
+>>> conn.hset('d-15', 'field', 1)
+1L
+>>> conn.hset('d-23', 'field', 9)
+1L
+>>> conn.hset('d-110', 'field', 3)
+1L
+>>> conn.sort('sort-input', by='d-*->field')
+['15', '110', '7', '23']
+>>> conn.sort('sort-input', by='d-*->field', get='d-*->field')
+['1', '3', '5', '9']
+
+9 事务操作
+WATCH, MULTI, EXEC, UNWATCH, and DISCARD.
+
+>>> def trans():
+... pipeline = conn.pipeline()
+... pipeline.incr('trans:')
+... time.sleep(.1)
+... pipeline.incr('trans:', -1)
+... print pipeline.execute()[0]
+...
+>>> if 1:
+... for i in xrange(3):
+... threading.Thread(target=trans).start()
+... time.sleep(.5)
+...
+1
+1
+1
+
+
+10 键的过期 操作
+
+PERSIST 	PERSIST key-name
+		—Removes the expiration from a key
+TTL 		TTL key-name
+		—Returns the amount of time remaining before a key will expire
+EXPIRE 		EXPIRE key-name seconds
+		—Sets the key to expire in the given number of seconds
+EXPIREAT 	EXPIREAT key-name timestamp
+		—Sets the expiration time as the given Unix timestamp
+PTTL 		PTTL key-name
+		—Returns the number of milliseconds before the key will expire
+PEXPIRE 	PEXPIRE key-name milliseconds
+		—Sets the key to expire in the given number of milliseconds 
+PEXPIREAT 	PEXPIREAT key-name timestamp-milliseconds
+		—Sets the expiration time to be the given Unix timestamp specified in milliseconds 
+
+
+11 数据持久化的方式
+- 快照
+创建快照的方法：
+a.客户端可以通过向Redis发送BGSAVE命令来船舰一个快照
+b.客户端还可以通过想Redis发送SAVE命令来创建一个快照
+c.当Redis通过SHUTDOWN命令接收到关闭服务器的请求时，或则接收到标准TERM信号时，会执行一个SAVE命令，阻塞所有客户端，不再执行任何命令，并且在SAVE完成后关闭服务器。
+d.当用户设置了save配置选项，比如save 60 10000,那么从Redis最近一次创建快照之后开始算起，当‘60秒之内有1000次写入'这个条件被满足时，Redis就会自动促发BGSAVE命令.
+e.当一个Redis服务器链接另一个Redis服务器，并向对方发送SYN命令来开始一次复制操作的时候，如果主服务器目前没有在执行BGSAVE操作，或者主服务器并非甘冈执行完BGSAVE操作，
+  那么主服务器就会执行BGSAVE命令.
+
+只使用快照持久化来保存数据时，一定要记住:如果系统真的发生崩溃，用户将丢失最近一次生成快照之后更改的所有数据。因此，快照持久化只适用于那些即使丢失一部分数据也
+不会造成问题的应用，而不能接受这种数据损失的应用程序则可以考虑使用AOF持久化。
+
+- AOF
+将被执行的写命令写道AOF文件的末尾，以此来记录数据发生的变化，因此，Redis只要从头到尾重新执行一次AOF文件包含的所有写命令，就可以
+回复AOF文件所记录的数据集。
+打开AOF持久化的方法： Redis的配置选项appendonly yes来开启
+此外，还有3个选项
+appendfsync always        每个Redis写命令都要同步写入硬盘。这样做会严重降低Redis的速度 (不推荐)
+appendfsync everysec      每秒执行一次同步，显示地将多个写命令同步到硬盘
+appendfsync no            让操作系统来决定何时进行同步  (不推荐)
+
+为了兼顾数据安全和写入性能，用户可以考虑使用appendfsync everysec选项，让Redis以每秒一次的频率对AOF文件进行同步，这个选项和不使用任何
+持久化特性时的性能相差无几，而通过每秒同步一次AOF文件，Redis可以保证，即使出现系统崩溃，用户最多也只会丢失一秒以内产生的数据。
+
+AOF持久化也有弊端，因为Redis会不断地将被执行的写命令记录到AOF文件里面，所以随着Redis不断运行，AOF文件的体积也会不断增大，在极端情况下，
+体积不但增大的AOF文件甚至会用完硬盘的所有可用空间。 还有另一个问题就是，因为Redis在重启之后需要通过重新执行AOF文件记录的所有写命令
+来还原数据，所以如果AOF文件的体积非常大，那么还原操作执行的时间就可能会非常长。
+
+为了解决这个问题，用户可以向Redis发送BGREWRITEAOF命令来重写AOF文件，使得AOF文件体积变得尽可能的小。也可以通过设置auto-aof-rewrite-percentage和auto-aof-rewrite-min-size选项
+来自动执行BFREWRITEAOF。
+比如如下设置
+auto-aof-rewrite-percentage 100
+auto-aof-rewrite-min-size 64mb
+那么当AOF文件的体积大于64MB并且AOF文件的体积比上一次重写后的体积大量至少一赔（100%）的时候，Redis将执行BGREWRITEAOF.
+
+无论时快照持久化还是AOF持久化，将数据持久化到硬盘上都是非常有必要的，处理进行持久化之外，用户还必须对持久化所得的文件进行备份。
+
+12 复制 操作
+为了高可用，可以设置一个redis为master节点， 然后若干个slave节点。 master节点可以读写，slave节点只能读。
+
+在slave节点的redis中通过设置slaveof <host> <port>或调用命令slave <host> <port>来配置
+
+slave节点还可以有slave节点。
+
+这样就形成一个master-slave-slave....的链，从而可以从多个redis节点来读取数据。
+
+持久化的方式 （快照，AOF）的设定同样适用于master和slave节点。
+
+比如通过AOF来配置持久化:
+配置好 slaveof <host> <port>后，对每个slave节点设置 appendonly yes和appendfsync everysec
+这样就可以让多台redis服务器以每秒一次的平吕将数据同步到硬盘上。
+
+这还只是第一步，因为用户还必须等待master节点发送的写命令到达从服务器，并且在执行后续操作之前，检查数据是否已经被同步到了硬盘里面。
+
+如何判断数据是否已经被同步到了硬盘里面?
+
+def wait_for_sync(mconn, sconn):
+	identifier = str(uuid.uuid4())
+	mconn.zadd('sync:wait', identifier, time.time())
+
+	while not sconn.info()['master_link_status'] != 'up':
+		time.sleep(.001)
+
+	while not sconn.zscore('sync:wait', identifier):
+		time.sleep(.001)
+
+	deadline = time.time() + 1.01
+	while time.time() < deadline:
+		if sconn.info()['aof_pending_bio_fsync'] == 0:
+			break
+		time.sleep(.001)
+
+	mconn.zrem('sync:wait', identifier)
+	mconn.zremrangebyscore('sync:wait', 0, time.time()-900)
+
+客户端通过调用上面的函数，来等待slave节点的数据已经被同步到硬盘，然后再开始后续的对redis的操作。
+
+13 事务
+def list_item(conn, itemid, sellerid, price):
+	inventory = "inventory:%s"%sellerid
+	item = "%s.%s"%(itemid, sellerid)
+	end = time.time() + 5
+	pipe = conn.pipeline()
+
+	while time.time() < end:
+		try:
+			pipe.watch(inventory)        =====>开启监控，如果后面执行pipe.execute()的时候发现inventory发生变化，将会出现exception
+			if not pipe.sismember(inventory, itemid):
+				pipe.unwatch()
+				return None
+			
+			pipe.multi()                 ==>开启流水线
+			pipe.zadd("market:", item, price)        ===>添加redis命令
+			pipe.srem(inventory, itemid)             ===>添加redis命令
+			pipe.execute()               ===>执行所添加的redis命令
+			return True
+		except redis.exceptions.WatchError:
+			pass
+	return False
+
+When we’ve watched keys
+with WATCH, if at any time some other client replaces, updates, or deletes any keys that
+we’ve WATCHed before we have performed the EXEC operation, our operations against
+Redis will fail with an error message when we try to EXEC (at which point we can retry
+or abort the operation). By using WATCH, MULTI/EXEC, and UNWATCH/DISCARD, we can
+ensure that the data that we’re working with doesn’t change while we’re doing something
+important, which protects us from data corruption.
+
+
+非事务性流水线
+如果用户再执行pipeline()时传入True作为参数，或者不传入任何参数,那么客户端将使用MULTI和EXEC包裹其用户要执行的所有命令。
+如果用户在执行pipeline()时传入False作为参数，那么客户端同样会像执行事务那样手机起用户要执行的所有命令，只是不在使用MULTI和EXEC包裹这些命令。
+
+如果用户需要向Redis发送多个命令，并且对于这些命令来说，一个命令的执行结果并不会影响另一个命令的执行与否，而且这些命令也不需要以
+事务方式来执行的话，那么我们可以通过向pipeline()方法传入False来进一步提升Redis的整体性能。
+
+def update_token_pipeline(conn, token, user, item=None):
+	timestamp = time.time()
+	pipe = conn.pipeline(False)
+	pipe.hset('login:', token, user)
+	pipe.zadd('recent:', token, timestamp)
+	
+	if item:
+		pipe.zadd('viewed:' + token, item, timestamp)
+		pipe.zremrangebyrank('viewed:' + token, 0, -26)
+		pipe.zincrby('viewed:', item, -1)
+	
+	pipe.execute()
+
+14 自定义锁
+在item 13里面我们看到，通过WATCH来执行的事务，将整个key (market)都锁住了，所以同一时间整个市场只能有一件物品进行交易，这个对于高并发的应用是不合适的。
+解决办法就是自定义一个细粒度的锁，来锁定单个物品。
+
+def acquire_lock_with_timeout(conn, lockname, acquire_timeout=10, lock_timeout=10):
+	identifier = str(uuid.uuid4())
+	lock_timeout = int(math.ceil(lock_timeout))
+	end = time.time() + acquire_timeout
+	
+	while time.time() < end:
+		if conn.setnx(lockname, identifier):
+			conn.expire(lockname, lock_timeout)
+			return identifier
+		elif not conn.ttl(lockname):
+			conn.expire(lockname, lock_timeout)
+
+		time.sleep(.001)
+	
+	return False
+
+def release_lock(conn, lockname, identifier):
+	pipe = conn.pipeline(True)
+	lockname = 'lock:' + lockname
+	
+	while True:
+		try:
+			pipe.watch(lockname)
+			if pipe.get(lockname) == identifier:
+				pipe.multi()
+				pipe.delete(lockname)
+				pipe.execute()
+				return True
+		
+			pipe.unwatch()
+			break
+		
+		except redis.exceptions.WatchError:
+			pass
+
+	return False
+
+def purchase_item_with_lock(conn, buyerid, itemid, sellerid):
+	buyer = "users:%s"%buyerid
+	seller = "users:%s"%sellerid
+	item = "%s.%s"%(itemid, sellerid)
+	inventory = "inventory:%s"%buyerid
+	end = time.time() + 30
+
+	locked = acquire_lock_with_timeout(conn, item)
+		return False
+
+	pipe = conn.pipeline(True)
+	
+	try:
+		while time.time() < end:
+			try:
+				pipe.watch(buyer)      #这里只用通过watch来锁住buyer就可以了，对于整个市场不需要锁了，因为locker已经获得了交易物品的锁.
+				pipe.zscore("market:", item)
+				pipe.hget(buyer, 'funds')
+				price, funds = pipe.execute()
+
+				if price is None or price > funds:
+					pipe.unwatch()
+					return None
+
+				pipe.hincrby(seller, int(price))
+				pipe.hincrby(buyerid, int(-price))
+				pipe.sadd(inventory, itemid)
+				pipe.zrem("market:", item)
+				pipe.execute()
+				return True
+			except redis.exceptions.WatchError:
+				pass
+			finally:
+				release_lock(conn, market, locked)
